@@ -1,175 +1,46 @@
+# InquiryBot LangChain RAG
 
----
+InquiryBot is a local Streamlit chatbot for asking questions over PDF documents. It
+uses OpenAI embeddings, ChromaDB for persistent vector search, and LangChain for the
+retrieval and answer-generation flow.
 
-# RAG Chatbot with LangChain, ChromaDB & OpenAI
+## What It Does
 
-### A Document-Aware Chatbot Powered by Retrieval-Augmented Generation (RAG)
-This repository implements a **Retrieval-Augmented Generation (RAG) chatbot** using:
+- Ingests PDFs from the `data/` folder or from the Streamlit sidebar uploader.
+- Stores vectors locally in `chroma_db/`.
+- Uses one shared Chroma collection and one embedding model everywhere.
+- Retrieves relevant chunks with a similarity score threshold.
+- Answers only from document context and politely refuses unsupported questions.
+- Shows citations with document name, page number, relevance score, and chunk text.
+- Can capture basic lead details and generate an email draft for business inquiries.
+- Logs runtime errors to `logs/app.log`.
 
-* **LangChain** (Prompting, Runnables, RAG Pipeline)
-* **ChromaDB** (Vector Store for Document Embeddings)
-* **OpenAI Embeddings & Chat Models**
-* **Streamlit** (UI Dashboard)
+## Project Structure
 
-It allows users to **upload PDF documents**, create embeddings, store them locally, and query them using a chatbot that responds **strictly based on the ingested content**, avoiding hallucinations.
-
----
-
-# Features
-
-### **RAG-based Retrieval**
-
-* Document chunks are embedded using **OpenAI text embeddings**
-* ChromaDB stores and retrieves relevant sections
-* Responses grounded in real context, not hallucinations
-
-### **LLM-Powered Chatbot**
-
-* Uses **OpenAI ChatCompletion** (`gpt-3.5-turbo` or better)
-* Generates precise answers using LangChain RAG pipeline
-
-### **Automatic Document Ingestion**
-
-* Upload PDFs into `/data`
-* Embeddings automatically generated during ingestion
-* Stores them persistently in `/chroma_db`
-
-### **Streamlit UI**
-
-* Clean chatbot interface
-* Sidebar options for:
-* Document ingestion
-* Clearing vector store
-* Viewing chat history
-
----
-
-# Project Structure
-
-```
+```text
 Inquirybot-langchain/
-│── chatbot.py               # Main Streamlit app (RAG + Chat)
-│── ingest_database.py       # Script to load & embed documents
-│── requirements.txt         # Python dependencies
-│── data/                    # Place your PDF documents here
-│── chroma_db/               # Vector store (auto-created)
-│── .env                     # Store your OPENAI_API_KEY
-└── README.md
+|-- chatbot.py             # Streamlit UI
+|-- ingest_database.py     # CLI ingestion/rebuild script
+|-- config.py              # Shared paths, models, and retrieval settings
+|-- embeddings.py          # Shared OpenAI embedding client
+|-- database.py            # Chroma, PDF loading, ingestion, retrieval helpers
+|-- utils.py               # Logging, upload saving, citations, lead CSV helpers
+|-- data/                  # PDF documents
+|-- tests/
+|   `-- test_retrieval.py  # Basic retrieval tests
+|-- requirements.txt
+|-- .env.example
+`-- readme.md
 ```
 
----
+## Setup
 
-# Tech Stack
+Create and activate a virtual environment:
 
-### Models
-
-* **OpenAIEmbeddings**
-* **ChatOpenAI (GPT-3.5 / GPT-4 / GPT-4o)**
-
-### Framework
-
-* LangChain (Runnables, Prompts, Document Loaders)
-
-### VectorDB
-
-* ChromaDB (persistent local storage)
-
-### UI
-
-* Streamlit
-
----
-
-#  Environment Variables
-
-Create a `.env` in the project root:
-
+```bash
+python -m venv venv
+venv\Scripts\activate
 ```
-OPENAI_API_KEY=your_openai_key_here
-```
-
----
-
-# Getting Started
----
-
-## Add Your PDFs
-
-Place your documents inside:
-
-```
-/data/
-```
-
-Example:
-
-```
-data/
- └── iSparx Business Profile.pdf
-```
----
-
-# Document Ingestion Flow
-
-1. Click **Ingest Documents** in the sidebar
-2. The system loads PDFs → splits text → creates embeddings
-3. Stores vectors in **ChromaDB**
-4. Ready to query!
-
----
-
-# Chat Flow
-
-Once ingestion is complete:
-
-* Type a question in the chat input
-* The RAG Chain retrieves the most relevant chunks
-* LLM generates an answer based ONLY on document context
-
-Example:
-
-```
-“What are the main components of Kubernetes architecture according to the PDF?”
-```
-
----
-
-# Testing Your RAG Pipeline
-
-Here are **4 recommended tests**:
-
-### ✔ Test 1 — General Understanding
-
-```
-Summarize the document in 5 points.
-```
-
-### ✔ Test 2 — Section-Level Query
-
-```
-What does the eBook say about Kubernetes control plane components?
-```
-
-### ✔ Test 3 — Compare Topics
-
-```
-Explain the difference between worker nodes and control plane as described in the PDF.
-```
-
-### ✔ Test 4 — Specific Keyword Retrieval
-
-```
-What does the document mention about kubelet?
-```
-
-Expected:
-Chatbot should respond:
-
-> “This information is not present in the ingested documents.”
-
----
-
-# Development Commands (Without Docker)
 
 Install dependencies:
 
@@ -177,25 +48,91 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Run ingest script:
+Create a `.env` file:
+
+```bash
+copy .env.example .env
+```
+
+Then add your OpenAI API key:
+
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+## Configuration
+
+Core settings live in `config.py`.
+
+Current defaults:
+
+- Chroma collection: `inquirybot_documents`
+- Embedding model: `text-embedding-3-large`
+- Default chat model: `gpt-4.1-mini`
+- Alternative chat model: `gpt-4o-mini`
+- Similarity threshold: `0.35`
+- Retrieved chunks per query: `5`
+
+## Ingest Documents
+
+Place PDFs in `data/`, then run:
 
 ```bash
 python ingest_database.py
 ```
 
-Run app locally:
+To clear and rebuild the full vector database from all PDFs in `data/`:
+
+```bash
+python ingest_database.py --rebuild
+```
+
+You can also ingest specific PDFs:
+
+```bash
+python ingest_database.py "data/iSparx Business profile .pdf"
+```
+
+## Run the App
 
 ```bash
 streamlit run chatbot.py
 ```
----
 
-# Future Enhancements (Planned)
+In the sidebar you can:
 
-* Multi-file upload from UI
-* Edit in the same chat
-* Document summarization mode
-* Multi-model routing local LLMs too
-* Support for Ollama local inference
-* Highlight retrieved context inside UI
+- Upload PDFs and ingest them immediately.
+- Choose the OpenAI chat model.
+- Ingest all PDFs from `data/`.
+- Clear and rebuild the vector database.
+- Capture lead details.
+- Enable email draft generation.
 
+## Citations
+
+Each answer includes expandable source citations with:
+
+- Document name
+- Page number
+- Relevance score
+- Retrieved chunk text
+
+If no retrieved chunk passes the similarity threshold, the app returns a refusal
+message instead of guessing.
+
+## Tests
+
+Run:
+
+```bash
+python -m unittest discover tests
+```
+
+The tests use deterministic fake embeddings and a temporary Chroma database, so
+they do not require OpenAI API calls or extra test dependencies.
+
+## Notes
+
+- `chroma_db/`, `.env`, `venv/`, logs, and generated lead CSV files are ignored by git.
+- Uploaded PDFs are saved into `data/`.
+- Lead capture is saved to `leads.csv`.

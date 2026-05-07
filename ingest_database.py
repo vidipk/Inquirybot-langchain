@@ -1,45 +1,56 @@
-from langchain_community.document_loaders import PyPDFDirectoryLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai.embeddings import OpenAIEmbeddings
-from langchain_chroma import Chroma
-from uuid import uuid4
+import argparse
+import logging
+import sys
 
-# import the .env file
 from dotenv import load_dotenv
+
+from config import DATA_PATH
+from database import ingest_pdf_paths, list_pdf_files, rebuild_vector_database
+from utils import setup_logging
+
+
 load_dotenv()
+setup_logging()
+logger = logging.getLogger(__name__)
 
-# configuration
-DATA_PATH = r"data"
-CHROMA_PATH = r"chroma_db"
 
-# initiate the embeddings model
-embeddings_model = OpenAIEmbeddings(model="text-embedding-3-large")
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Ingest PDF documents into ChromaDB.")
+    parser.add_argument(
+        "--rebuild",
+        action="store_true",
+        help="Clear the existing vector database before ingesting all PDFs.",
+    )
+    parser.add_argument(
+        "paths",
+        nargs="*",
+        help="Optional PDF paths. Defaults to all PDFs under data/.",
+    )
+    return parser.parse_args()
 
-# initiate the vector store
-vector_store = Chroma(
-    collection_name="example_collection",
-    embedding_function=embeddings_model,
-    persist_directory=CHROMA_PATH,
-)
 
-# loading the PDF document
-loader = PyPDFDirectoryLoader(DATA_PATH)
+def main() -> int:
+    args = parse_args()
 
-raw_documents = loader.load()
+    try:
+        if args.rebuild:
+            chunk_count = rebuild_vector_database()
+            print(f"Rebuilt vector database with {chunk_count} chunks.")
+            return 0
 
-# splitting the document
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=300,
-    chunk_overlap=100,
-    length_function=len,
-    is_separator_regex=False,
-)
+        pdf_paths = args.paths or list_pdf_files(DATA_PATH)
+        if not pdf_paths:
+            print("No PDF files found. Add PDFs to data/ or pass PDF paths.")
+            return 1
 
-# creating the chunks
-chunks = text_splitter.split_documents(raw_documents)
+        chunk_count = ingest_pdf_paths(pdf_paths, replace_existing=True)
+        print(f"Ingested {chunk_count} chunks from {len(pdf_paths)} PDF(s).")
+        return 0
+    except Exception as exc:
+        logger.exception("PDF ingestion failed")
+        print(f"Ingestion failed: {exc}", file=sys.stderr)
+        return 2
 
-# creating unique ID's
-uuids = [str(uuid4()) for _ in range(len(chunks))]
 
-# adding chunks to vector store
-vector_store.add_documents(documents=chunks, ids=uuids)
+if __name__ == "__main__":
+    raise SystemExit(main())
