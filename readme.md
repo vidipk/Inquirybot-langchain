@@ -136,3 +136,16 @@ they do not require OpenAI API calls or extra test dependencies.
 - `chroma_db/`, `.env`, `venv/`, logs, and generated lead CSV files are ignored by git.
 - Uploaded PDFs are saved into `data/`.
 - Lead capture is saved to `leads.csv`.
+
+## Vercel
+
+This repository includes `app.py` as a minimal WSGI entrypoint so Vercel's
+Python builder can detect an application. The full chatbot UI is still the
+Streamlit app in `chatbot.py`, so run it with:
+
+```bash
+streamlit run chatbot.py
+```
+
+For a hosted interactive chatbot, prefer Streamlit Community Cloud, Render, or a
+server/VM that can run a persistent Streamlit process.
