@@ -1,7 +1,2 @@
-langchain
-langchain-chroma
-chromadb
-streamlit
-python-dotenv
-pypdf
-openai
+# Vercel deployment dependencies.
+# app.py uses only the Python standard library.

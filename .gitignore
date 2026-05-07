@@ -6,6 +6,8 @@ env/
 chroma_db/
 logs/
 leads.csv
+data/*
+!data/.gitkeep
 
 __pycache__/
 *.py[cod]

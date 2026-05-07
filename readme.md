@@ -45,7 +45,7 @@ venv\Scripts\activate
 Install dependencies:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-local.txt
 ```
 
 Create a `.env` file:
@@ -140,8 +140,11 @@ they do not require OpenAI API calls or extra test dependencies.
 ## Vercel
 
 This repository includes `app.py` as a minimal WSGI entrypoint so Vercel's
-Python builder can detect an application. The full chatbot UI is still the
-Streamlit app in `chatbot.py`, so run it with:
+Python builder can detect an application. Vercel installs from the minimal
+`requirements.txt`, while the full local chatbot dependencies live in
+`requirements-local.txt`.
+
+The full chatbot UI is still the Streamlit app in `chatbot.py`, so run it with:
 
 ```bash
 streamlit run chatbot.py
@@ -149,3 +152,5 @@ streamlit run chatbot.py
 
 For a hosted interactive chatbot, prefer Streamlit Community Cloud, Render, or a
 server/VM that can run a persistent Streamlit process.
+
+See `DEPLOYMENT.md` for the Vercel Free bundle-size strategy.
